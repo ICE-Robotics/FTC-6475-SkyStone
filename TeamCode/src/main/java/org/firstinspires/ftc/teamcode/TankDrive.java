@@ -82,6 +82,7 @@ public class TankDrive extends LinearOpMode {
             double drive2  = -gamepad1.right_stick_y;
             boolean buttonA = gamepad1.a;
             boolean buttonB = gamepad1.b;
+            boolean buttonY = gamepad1.y;
             leftPower    = Range.clip(drive1, -1.0, 1.0) ;
             rightPower   = Range.clip(drive1, -1.0, 1.0) ;
 
@@ -96,6 +97,14 @@ public class TankDrive extends LinearOpMode {
             if(buttonB){
                 robot.leftServo.setPosition(0);
                 robot.rightServo.setPosition(0);
+                telemetry.addData("Servo Status:", "Off");
+                telemetry.addData("Left Servo: ", robot.leftServo.getPosition());
+                telemetry.addData("Right Servo: ", robot.rightServo.getPosition());
+                telemetry.update();
+            }
+            if(buttonY){
+                robot.leftServo.setPosition(2);
+                robot.rightServo.setPosition(2);
                 telemetry.addData("Servo Status:", "Off");
                 telemetry.addData("Left Servo: ", robot.leftServo.getPosition());
                 telemetry.addData("Right Servo: ", robot.rightServo.getPosition());
