@@ -73,18 +73,13 @@ public class TankDrive extends LinearOpMode {
             double leftPower;
             double rightPower;
 
-            // Choose to drive using either Tank Mode, or POV Mode
-            // Comment out the method that's not used.  The default below is POV.
-
-            // POV Mode uses left stick to go forward, and right stick to turn.
-            // - This uses basic math to combine motions and is easier to drive straight.
-            double drive1 = gamepad1.left_stick_y;
+            double drive1 = -gamepad1.left_stick_y;
             double drive2  = -gamepad1.right_stick_y;
             boolean buttonA = gamepad1.a;
             boolean buttonB = gamepad1.b;
             boolean buttonY = gamepad1.y;
             leftPower    = Range.clip(drive1, -1.0, 1.0) ;
-            rightPower   = Range.clip(drive1, -1.0, 1.0) ;
+            rightPower   = Range.clip(drive2, -1.0, 1.0) ;
 
             if(buttonA){
                 robot.leftServo.setPosition(0.7);
