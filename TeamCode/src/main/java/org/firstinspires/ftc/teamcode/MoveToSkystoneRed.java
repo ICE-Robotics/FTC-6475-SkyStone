@@ -24,6 +24,8 @@ public class MoveToSkystoneRed extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         robot.init(hardwareMap);
         vuforia.init();
+        vuforia.initVuforia();
+        vuforia.initTfod();
 
         /* Detect location of Skystone */
         switch (determinePosition()) {
