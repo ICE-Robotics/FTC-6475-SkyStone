@@ -87,9 +87,38 @@ public class PovDrive extends LinearOpMode {
             // - This uses basic math to combine motions and is easier to drive straight.
             double drive = -gamepad1.left_stick_y;
             double turn  =  gamepad1.right_stick_x;
+            boolean buttonA = gamepad1.a;
+            boolean buttonB = gamepad1.b;
+            boolean armDown = gamepad1.left_bumper;
+            boolean armUp = gamepad1.right_bumper;
             leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
             rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
 
+
+            if(buttonA){
+                robot.leftServo.setPosition(0.7);
+                robot.rightServo.setPosition(1);
+                telemetry.addData("Servo Status: ", "On");
+                telemetry.addData("Left Servo: ", robot.leftServo.getPosition());
+                telemetry.addData("Right Servo: ", robot.rightServo.getPosition());
+                telemetry.update();
+            }
+            if(buttonB){
+                robot.leftServo.setPosition(0);
+                robot.rightServo.setPosition(0);
+                telemetry.addData("Servo Status:", "Off");
+                telemetry.addData("Left Servo: ", robot.leftServo.getPosition());
+                telemetry.addData("Right Servo: ", robot.rightServo.getPosition());
+                telemetry.update();
+            }
+            if(armUp){
+                robot.armLeft.setPosition(0);
+                robot.armRight.setPosition(0);
+            }
+            if(armUp){
+                robot.armLeft.setPosition(1);
+                robot.armRight.setPosition(1);
+            }
             // Send calculated power to wheels
             robot.leftDrive1.setPower(leftPower);
             robot.leftDrive2.setPower(leftPower);

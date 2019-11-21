@@ -12,6 +12,8 @@ public class RobotHardware {
     public DcMotor rightDrive2 = null;
     public Servo leftServo = null;
     public Servo rightServo = null;
+    public Servo armLeft = null;
+    public Servo armRight = null;
     public BNO055IMU imu;
 
     private HardwareMap map = null;
@@ -38,6 +40,8 @@ public class RobotHardware {
         rightDrive2 = map.get(DcMotor.class, "RD2");
         leftServo = map.get(Servo.class, "LeftServo");
         rightServo = map.get(Servo.class, "RightServo");
+        armRight = map.get(Servo.class, "ArmRight");
+        armLeft = map.get(Servo.class, "ArmLeft");
 
         imu.initialize(parameters);
         // Most robots need the motor on one side to be reversed to drive forward

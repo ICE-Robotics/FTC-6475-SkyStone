@@ -69,14 +69,14 @@ import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
 public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     /* Declare OpMode members. */
-    HardwarePushbot robot   = new HardwarePushbot();   // Use a Pushbot's hardware
+    RobotHardware robot   = new RobotHardware();   // Use a Pushbot's hardware
     private ElapsedTime     runtime = new ElapsedTime();
 
-    static final double     COUNTS_PER_MOTOR_REV    = 1120 ;    // eg: TETRIX Motor Encoder
-    static final double     DRIVE_GEAR_REDUCTION    = 40.0 ;     // This is < 1.0 if geared UP
+    static final double     COUNTS_PER_MOTOR_REV    = 1120.0;    // eg: TETRIX Motor Encoder
+    static final double     DRIVE_GEAR_REDUCTION    =  1.0 ;     // This is < 1.0 if geared UP
     static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
     static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
-                                                      (WHEEL_DIAMETER_INCHES * 3.1415);
+                                                      (WHEEL_DIAMETER_INCHES * 3.1415 );
     static final double     DRIVE_SPEED             = 0.6;
     static final double     TURN_SPEED              = 0.5;
 
@@ -84,27 +84,34 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-
         /*
          * Initialize the drive system variables.
          * The init() method of the hardware class does all the work here
          */
         RobotHardware robot = new RobotHardware();
         robot.init(hardwareMap);
+        robot.rightDrive1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        robot.leftDrive1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        robot.rightDrive2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        robot.leftDrive2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Send telemetry message to signify robot waiting;
         telemetry.addData("Status", "Resetting Encoders");    //
         telemetry.update();
 
-        robot.leftDrive2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.leftDrive1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rightDrive1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.leftDrive2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.rightDrive2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        robot.leftDrive2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.leftDrive1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         robot.rightDrive1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.leftDrive2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.rightDrive2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Send telemetry message to indicate successful Encoder reset
         telemetry.addData("Path0",  "Starting at %7d :%7d",
-                          robot.leftDrive2.getCurrentPosition(),
+                          robot.leftDrive1.getCurrentPosition(),
                           robot.rightDrive1.getCurrentPosition());
         telemetry.update();
 
@@ -113,7 +120,10 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(DRIVE_SPEED,  2,  2, 10);  // S1: Forward 47 Inches with 5 Sec timeout
+        //encoderDrive(DRIVE_SPEED,  4,  4, 100000);  // S1: Forward 47 Inches with 5 Sec timeout
+        //encoderDrive(DRIVE_SPEED,  -12,  -12, 100000);
+        encoderDrive(DRIVE_SPEED,  6,  6, 100000);
+        //encoderDrive(DRIVE_SPEED,  -36,  -36, 100000);
         //encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
         //encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
 
@@ -133,6 +143,7 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
      *  2) Move runs out of time
      *  3) Driver stops the opmode running.
      */
+
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
                              double timeoutS) {
@@ -160,6 +171,8 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
             // reset the timeout time and start motion.
             runtime.reset();
             robot.leftDrive2.setPower( Math.abs(speed));
+            robot.rightDrive2.setPower(Math.abs(speed));
+            robot.leftDrive1.setPower( Math.abs(speed));
             robot.rightDrive1.setPower(Math.abs(speed));
 
             // keep looping while we are still active, and there is time left, and both motors are running.
@@ -184,6 +197,8 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 
             robot.leftDrive2.setPower(0);
             robot.rightDrive1.setPower(0);
+            robot.leftDrive1.setPower(0);
+            robot.rightDrive2.setPower(0);
 
             // Turn off RUN_TO_POSITION
             robot.leftDrive2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
