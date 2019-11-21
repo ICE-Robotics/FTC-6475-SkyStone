@@ -98,12 +98,7 @@ public class TankDrive extends LinearOpMode {
                 telemetry.update();
             }
             if(buttonY){
-                robot.leftServo.setPosition(2);
-                robot.rightServo.setPosition(2);
-                telemetry.addData("Servo Status:", "Off");
-                telemetry.addData("Left Servo: ", robot.leftServo.getPosition());
-                telemetry.addData("Right Servo: ", robot.rightServo.getPosition());
-                telemetry.update();
+
             }
             // Tank Mode uses one stick to control each wheel.
             // - This requires no math, but it is hard to drive forward slowly and keep straight.

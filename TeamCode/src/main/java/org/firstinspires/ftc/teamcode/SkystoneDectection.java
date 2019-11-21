@@ -29,9 +29,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
@@ -41,54 +39,25 @@ import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 import java.util.List;
 
-/**
- * This 2019-2020 OpMode illustrates the basics of using the TensorFlow Object Detection API to
- * determine the position of the Skystone game elements.
- *
- * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
- * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list.
- *
- * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
- * is explained below.
- */
-@TeleOp(name = "Concept: TensorFlow Object Detection", group = "Concept")
-
-public class ConceptTensorFlowObjectDetection extends LinearOpMode {
+public class SkystoneDectection extends LinearOpMode {
     private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Stone";
     private static final String LABEL_SECOND_ELEMENT = "Skystone";
 
-    /*
-     * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
-     * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
-     * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
-     * web site at https://developer.vuforia.com/license-manager.
-     *
-     * Vuforia license keys are always 380 characters long, and look as if they contain mostly
-     * random data. As an example, here is a example of a fragment of a valid key:
-     *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
-     * Once you've obtained a license key, copy the string from the Vuforia web site
-     * and paste it in to your code on the next line, between the double quotes.
-     */
     private static final String VUFORIA_KEY =
             "ATrCz8D/////AAABmc3XlIert0HKlboeCjVYhDgsktWr4sPPFzPH3bIJNybjrZFIe+fmydvlsTyXPBy/H1tiSPZYsX86W4u+JDVP29i1kqzhJZBu6SbsYrAVRkbfdKFEiQVzs+yPWllNl3fPXTHVAg5enqTRuAJgCbnomUvm2Sc9zQq827k9dKuxsu77CTxjOFgWeH7dG2KiBu0Td9+NnSkcxB246k8kLz174CxosFeNmH72KchajgkcSg9evq9bWTPQnzmvZ57zUoPrYpnF3coF/8OZilDstMpqiEC3a7WFge00WSuvY9z8IAQY4j/gxMViG0vA5VFxe1J5b+O0VGJiZyV6JJlEhKMXXcmBes06uRfn3m1SDsGKaYC5";
 
-    /**
-     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
-     * localization engine.
-     */
     private VuforiaLocalizer vuforia;
-
-    /**
-     * {@link #tfod} is the variable we will use to store our instance of the TensorFlow Object
-     * Detection engine.
-     */
     private TFObjectDetector tfod;
+
+    private int skystoneCounter;
+    private float skystoneTop;
+    private float skystoneBottom;
+    private float skystoneLeft;
+    private float skystoneRight;
 
     @Override
     public void runOpMode() {
-        // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that
-        // first.
         initVuforia();
 
         if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
@@ -122,6 +91,13 @@ public class ConceptTensorFlowObjectDetection extends LinearOpMode {
                       // step through the list of recognitions and display boundary info.
                       int i = 0;
                       for (Recognition recognition : updatedRecognitions) {
+                          if (recognition.getLabel().equals("Skystone")) {
+                              skystoneCounter++;
+                              skystoneTop = recognition.getTop();
+                              skystoneBottom = recognition.getBottom();
+                              skystoneLeft = recognition.getLeft();
+                              skystoneRight = recognition.getRight();
+                          }
                         telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
                         telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
                                           recognition.getLeft(), recognition.getTop());
@@ -139,9 +115,26 @@ public class ConceptTensorFlowObjectDetection extends LinearOpMode {
         }
     }
 
-    /**
-     * Initialize the Vuforia localization engine.
-     */
+    public float getSkystoneTop() {
+        return skystoneTop;
+    }
+
+    public float getSkystoneBottom() {
+        return skystoneBottom;
+    }
+
+    public float getSkystoneLeft() {
+        return skystoneLeft;
+    }
+
+    public float getSkystoneRight() {
+        return skystoneRight;
+    }
+
+    public int getSkystoneCounter() {
+        return skystoneCounter;
+    }
+
     private void initVuforia() {
         /*
          * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
