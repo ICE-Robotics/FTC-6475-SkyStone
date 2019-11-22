@@ -74,7 +74,7 @@ import static java.lang.Math.abs;
  */
 
 @Autonomous(name="Pushbot: Auto Drive By Encoder", group="Pushbot")
-
+@Disabled
 public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     /* Declare OpMode members. */
@@ -175,6 +175,51 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
      *  2) Move runs out of time
      *  3) Driver stops the opmode running.
      */
+    public void gyroTurn(double speed, double angle, double timeout) {
+        //Ensure the motors are in the right configuration
+        robot.rightDrive1.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        robot.leftDrive2.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+
+        double timeoutTime = runtime.seconds() + timeout;
+        // keep looping while we are still active, and not on heading.
+        while (opModeIsActive() && !onHeading(speed, angle, P_TURN_COEFF) && runtime.seconds() < timeoutTime) {
+            // Update telemetry & Allow time for other processes to run.
+            telemetry.update();
+        }
+    }
+    private boolean onHeading(double speed, double angle, double PCoeff) {
+        double error;
+        double steer;
+        boolean onTarget = false;
+        double leftSpeed;
+        double rightSpeed;
+
+        // determine turn power based on +/- error
+        error = getError(angle);
+
+        if (abs(error) <= HEADING_THRESHOLD) {
+            steer = 0.0;
+            leftSpeed = 0.0;
+            rightSpeed = 0.0;
+            onTarget = true;
+        } else {
+            steer = getSteer(error, PCoeff);
+            rightSpeed = Range.clip(speed * steer,-1,1);
+            leftSpeed = -rightSpeed;
+        }
+
+        // Send desired speeds to motors.
+        robot.leftDrive2.setPower(leftSpeed);
+        robot.rightDrive1.setPower(rightSpeed);
+
+        // Display it for the driver.
+        telemetry.addData("Target", "%5.2f", angle);
+        telemetry.addData("Err/St", "%5.2f/%5.2f", error, steer);
+        telemetry.addData("Speed.", "%5.2f:%5.2f", leftSpeed, rightSpeed);
+
+        return onTarget;
+    }
+
     protected void gyroDrive(double speed, double distance, double angle, double timeout) {
 
         int newLeftTarget;
