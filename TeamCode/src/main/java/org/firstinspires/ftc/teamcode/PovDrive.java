@@ -111,7 +111,7 @@ public class PovDrive extends LinearOpMode {
                 telemetry.addData("Right Servo: ", robot.rightServo.getPosition());
                 telemetry.update();
             }
-            if(armUp){
+            if(armDown){
                 robot.armLeft.setPosition(0);
                 robot.armRight.setPosition(0);
             }

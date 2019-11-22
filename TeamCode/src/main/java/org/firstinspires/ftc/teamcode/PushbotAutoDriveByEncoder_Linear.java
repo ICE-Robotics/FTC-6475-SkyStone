@@ -33,9 +33,18 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+
+import static java.lang.Math.abs;
 
 /**
  * This file illustrates the concept of driving a path based on encoder counts.
@@ -80,7 +89,12 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
     static final double     DRIVE_SPEED             = 0.6;
     static final double     TURN_SPEED              = 0.5;
 
+    static final double HEADING_THRESHOLD = 2.5;      // As tight as we can make it with an integer gyro
+    static final double P_TURN_COEFF = .010;     // .02 Larger is more responsive, but also less stable
+    static final double P_DRIVE_COEFF = .010;     // .05 Larger is more responsive, but also less stable
 
+
+    protected BNO055IMU imu;
 
     @Override
     public void runOpMode() {
@@ -88,8 +102,22 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
          * Initialize the drive system variables.
          * The init() method of the hardware class does all the work here
          */
+
+
         RobotHardware robot = new RobotHardware();
         robot.init(hardwareMap);
+
+        BNO055IMU.Parameters parametersG = new BNO055IMU.Parameters();
+        parametersG.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parametersG.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parametersG.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parametersG.loggingEnabled = true;
+        parametersG.loggingTag = "IMU";
+        parametersG.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
+
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parametersG);
+
         robot.rightDrive1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robot.leftDrive1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robot.rightDrive2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -116,13 +144,17 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
         telemetry.update();
 
         // Wait for the game to start (driver presses PLAY)
+        while (!isStopRequested() && !imu.isGyroCalibrated()) {
+            sleep(50);
+            idle();
+        }
         waitForStart();
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
         //encoderDrive(DRIVE_SPEED,  4,  4, 100000);  // S1: Forward 47 Inches with 5 Sec timeout
         //encoderDrive(DRIVE_SPEED,  -12,  -12, 100000);
-        encoderDrive(DRIVE_SPEED,  6,  6, 100000);
+        encoderDrive(DRIVE_SPEED,  30,  30, 100000);
         //encoderDrive(DRIVE_SPEED,  -36,  -36, 100000);
         //encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
         //encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
@@ -143,7 +175,98 @@ public class PushbotAutoDriveByEncoder_Linear extends LinearOpMode {
      *  2) Move runs out of time
      *  3) Driver stops the opmode running.
      */
+    protected void gyroDrive(double speed, double distance, double angle, double timeout) {
 
+        int newLeftTarget;
+        int newRightTarget;
+        int moveCounts;
+        double max;
+        double error;
+        double steer;
+        double leftSpeed;
+        double rightSpeed;
+
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+            RobotHardware robot = new RobotHardware();
+            robot.init(hardwareMap);
+
+            // Determine new target position, and pass to motor controller
+            moveCounts = (int) (distance * COUNTS_PER_INCH);
+            newLeftTarget = robot.leftDrive2.getCurrentPosition() + moveCounts;
+            newRightTarget = robot.rightDrive1.getCurrentPosition() + moveCounts;
+
+            // Set Target and Turn On RUN_TO_POSITION
+            robot.leftDrive2.setTargetPosition(newLeftTarget);
+            robot.rightDrive1.setTargetPosition(newRightTarget);
+
+            // Turn On RUN_TO_POSITION
+            robot.leftDrive2.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+            robot.rightDrive1.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+            //robot.leftDrive2.setTargetPositionTolerance(100);
+            //robot.rightDrive1.setTargetPositionTolerance(100);
+            // start motion.
+            speed = Range.clip(speed, -1.0, 1.0);
+            robot.leftDrive2.setPower(speed);
+            robot.rightDrive1.setPower(speed);
+
+
+            double timeoutTime = runtime.seconds() + timeout;
+            // keep looping while we are still active, and BOTH motors are running.
+            while (opModeIsActive() && (robot.leftDrive2.isBusy() && robot.rightDrive1.isBusy()) && runtime.seconds() <= timeoutTime) {
+
+                // adjust relative speed based on heading error.
+                error = getError(angle);
+                steer = getSteer(error, P_DRIVE_COEFF);
+
+                // if driving in reverse, the motor correction also needs to be reversed
+                if (distance < 0) steer *= -1.0;
+
+                leftSpeed = speed - steer;
+                rightSpeed = speed + steer;
+                telemetry.addData("left: ", leftSpeed);
+                telemetry.addData("right", rightSpeed);
+                telemetry.update();
+                // Normalize speeds if either one exceeds +/- 1.0;
+                max = Math.max(abs(leftSpeed), abs(rightSpeed));
+                if (max > 1.0) {
+                    leftSpeed /= max;
+                    rightSpeed /= max;
+                }
+
+                robot.leftDrive2.setPower(leftSpeed);
+                robot.rightDrive1.setPower(rightSpeed);
+
+                // Display drive status for the driver.
+                telemetry.addData("Err/St", "%5.1f/%5.1f", error, steer);
+                telemetry.addData("Target", "%7d:%7d", newLeftTarget, newRightTarget);
+                telemetry.addData("Actual", "%7d:%7d", robot.leftDrive2.getCurrentPosition(), robot.rightDrive1.getCurrentPosition());
+                telemetry.addData("Speed", "%5.2f:%5.2f", leftSpeed, rightSpeed);
+                telemetry.update();
+            }
+
+            // Stop all motion;
+            robot.leftDrive2.setPower(0);
+            robot.rightDrive1.setPower(0);
+        }
+    }
+
+    private double getError(double targetAngle) {
+
+        double robotError;
+
+        // calculate error in -179 to +180 range  (
+        robotError = targetAngle - imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
+        while (robotError > 180) robotError -= 360;
+        while (robotError <= -180) robotError += 360;
+        return robotError;
+    }
+
+    private double getSteer(double error, double PCoeff) {
+        return Range.clip(PCoeff * error, -1, 1);
+
+
+    }
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
                              double timeoutS) {
